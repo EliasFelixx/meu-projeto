@@ -12,6 +12,7 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'cadastro',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
+  ssl: { rejectUnauthorized: false }
 });
 
 app.get('/usuarios', async (req, res) => {
