@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastro de Usuarios</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0e0e0f; color: #f0f0f0; font-family: monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 48px 16px; }
+    h1 { font-size: 2.5rem; color: #c8f135; margin-bottom: 8px; }
+    p { color: #888; margin-bottom: 40px; }
+    .card { background: #18181b; border: 1px solid #2e2e33; border-radius: 12px; padding: 32px; width: 100%; max-width: 480px; margin-bottom: 40px; }
+    .card h2 { color: #c8f135; margin-bottom: 24px; font-size: 1rem; text-transform: uppercase; }
+    label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 6px; text-transform: uppercase; }
+    input { width: 100%; background: #0e0e0f; border: 1px solid #2e2e33; border-radius: 8px; color: #f0f0f0; font-family: monospace; font-size: 0.9rem; padding: 12px 14px; margin-bottom: 18px; outline: none; }
+    input:focus { border-color: #c8f135; }
+    button { width: 100%; background: #c8f135; color: #000; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; padding: 14px; cursor: pointer; margin-top: 4px; }
+    button:hover { opacity: 0.88; }
+    #msg { font-size: 0.82rem; margin-top: 14px; text-align: center; min-height: 20px; }
+    #msg.ok { color: #c8f135; } #msg.erro { color: #ff5c5c; }
+    .table-wrap { width: 100%; max-width: 720px; }
+    .table-wrap h2 { color: #c8f135; text-transform: uppercase; margin-bottom: 16px; font-size: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th { text-align: left; padding: 10px 14px; color: #888; border-bottom: 1px solid #2e2e33; text-transform: uppercase; font-size: 0.72rem; }
+    tbody tr { border-bottom: 1px solid #2e2e33; }
+    tbody tr:hover { background: #1f1f24; }
+    tbody td { padding: 12px 14px; }
+    .btn-del { background: transparent; border: 1px solid #ff5c5c; color: #ff5c5c; border-radius: 6px; padding: 4px 10px; font-family: monospace; font-size: 0.75rem; cursor: pointer; width: auto; }
+    .btn-del:hover { background: #ff5c5c; color: #fff; }
+    .empty { text-align: center; color: #888; padding: 32px 0; }
+  </style>
+</head>
+<body>
+  <h1>CADASTRO</h1>
+  <p>Gerenciamento de Usuarios</p>
+  <div class="card">
+    <h2>// Novo Usuario</h2>
+    <label>Nome</label>
+    <input id="nome" type="text" placeholder="Ex: Maria Silva" />
+    <label>E-mail</label>
+    <input id="email" type="email" placeholder="Ex: maria@email.com" />
+    <label>Telefone</label>
+    <input id="telefone" type="tel" placeholder="Ex: (11) 99999-9999" />
+    <button onclick="cadastrar()">Cadastrar</button>
+    <div id="msg"></div>
+  </div>
+  <div class="table-wrap">
+    <h2>// Usuarios Cadastrados</h2>
+    <table>
+      <thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Data</th><th></th></tr></thead>
+      <tbody id="tabela"></tbody>
+    </table>
+  </div>
+  <script>
+    const API = 'http://localhost:3000';
+    async function listar() {
+      try {
+        const res = await fetch(API + '/usuarios');
+        const dados = await res.json();
+        const tbody = document.getElementById('tabela');
+        if (!dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum usuario cadastrado.</td></tr>'; return; }
+        tbody.innerHTML = dados.map(u => '<tr><td>' + u.id + '</td><td>' + u.nome + '</td><td>' + u.email + '</td><td>' + (u.telefone || '-') + '</td><td>' + new Date(u.criado_em).toLocaleDateString('pt-BR') + '</td><td><button class="btn-del" onclick="deletar(' + u.id + ')">X</button></td></tr>').join('');
+      } catch { document.getElementById('tabela').innerHTML = '<tr><td colspan="6" class="empty">Erro ao conectar.</td></tr>'; }
+    }
+    async function cadastrar() {
+      const nome = document.getElementById('nome').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const telefone = document.getElementById('telefone').value.trim();
+      const msg = document.getElementById('msg');
+      if (!nome || !email) { msg.textContent = 'Nome e e-mail sao obrigatorios.'; msg.className = 'erro'; return; }
+      try {
+        const res = await fetch(API + '/usuarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, email, telefone }) });
+        const data = await res.json();
+        if (!res.ok) { msg.textContent = data.erro; msg.className = 'erro'; }
+        else { msg.textContent = 'Usuario cadastrado!'; msg.className = 'ok'; document.getElementById('nome').value = ''; document.getElementById('email').value = ''; document.getElementById('telefone').value = ''; listar(); }
+      } catch { msg.textContent = 'Erro ao conectar.'; msg.className = 'erro'; }
+    }
+    async function deletar(id) {
+      if (!confirm('Remover este usuario?')) return;
+      await fetch(API + '/usuarios/' + id, { method: 'DELETE' });
+      listar();
+    }
+    listar();
+  </script>
+</body>
+</html>
